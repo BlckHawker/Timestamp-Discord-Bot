@@ -201,8 +201,10 @@ client.on('guildUpdate', (oldGuild, newGuild) => {
 
 //todo test
 // Emitted when an interaction is created.
-client.on('interactionCreate', (interaction) => {
+client.on('interactionCreate', async (interaction) => {
     console.log(`interactionCreate: ${interaction}`);
+    if (!interaction.isChatInputCommand()) return;
+        await commands.handleCommand(interaction);
 });
 
 //todo test
