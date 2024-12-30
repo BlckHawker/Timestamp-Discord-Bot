@@ -1,6 +1,7 @@
 require("dotenv").config();
 const Discord = require('discord.js');
 const utils = require("./utils.js");
+const commands = require("./commands.js");
 const { GatewayIntentBits, IntentsBitField, Partials } = Discord;
 
 const client = new Discord.Client({
@@ -61,12 +62,6 @@ client.on('channelUpdate', (oldChannel, newChannel) => {
 });
 
 //todo test
-// Emitted for general debugging information.
-client.on('debug', (info) => {
-    console.log(`debug: ${info}`);
-});
-
-//todo test
 // Emitted whenever a custom emoji is created in a guild.
 client.on('emojiCreate', (emoji) => {
     console.log(`emojiCreate: ${emoji}`);
@@ -102,16 +97,25 @@ client.on('guildBanRemove', (ban) => {
     console.log(`guildBanRemove: ${ban}`);
 });
 
-//todo test
-// Emitted whenever the client joins a guild.
 client.on('guildCreate', (guild) => {
-    console.log(`guildCreate: ${guild}`);
+    console.log('guildCreate called');
+    //When the bot joins a server, create a new object
+    let data = utils.readDataFile();
+    data.push(utils.createNewObject(guild.id));
+    utils.saveToDataFile(data);
+    //register commands
+    commands.registerCommands(guild.id);
 });
 
 //todo test
 // Emitted whenever a guild kicks the client or the guild is deleted/left.
 client.on('guildDelete', (guild) => {
-    console.log(`guildDelete: ${guild}`);
+    console.log('guildDelete called');
+
+    //when the bot leaves the server, remove from data json
+    let data = utils.readDataFile();
+    data = data.filter((obj) => obj.serverId !== guild.id);
+    utils.saveToDataFile(data);
 });
 
 //todo test
