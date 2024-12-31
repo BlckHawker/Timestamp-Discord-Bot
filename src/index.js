@@ -79,11 +79,11 @@ client.on('emojiUpdate', (oldEmoji, newEmoji) => {
     console.log(`emojiUpdate: ${oldEmoji} | ${newEmoji}`);
 });
 
-//todo test
-// Emitted when the client encounters an error.
-client.on('error', (error) => {
-    console.log(`error: ${error}`);
-});
+// //todo test
+// // Emitted when the client encounters an error.
+// client.on('error', (error) => {
+//     console.log(`error: ${error}`);
+// });
 
 //todo test
 // Emitted whenever a member is banned from a guild.

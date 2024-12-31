@@ -51,18 +51,13 @@ const handleCommand = async (interaction) => {
         case "help":
             interaction.reply({ content: "help command", ephemeral: true, });
         break;
-        case "ping":
-            interaction.reply({ content: "ping", ephemeral: true, });
-        break;
         case "get-timestamp":
             //use regex to make sure the date and time is valid
 
             const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             const thirtyMonths = ["April", "June", "September", "November"]
             const dateValue = interaction.options.get("date").value;
-            const date = dateValue.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-
-            const isLeapYear = date[3] % 4 === 0 && date[3] % 100 !== 0;
+            const date = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
             if(date === null)
             {
@@ -100,15 +95,96 @@ const handleCommand = async (interaction) => {
                 return;
             }
 
-
+            //If the month only has 30 days, make sure the day isn't 31 
             if(thirtyMonths.includes(monthString) && date[2] > 30)
             {
                 interaction.reply({ content: `"${date[2]}" is an invalid day as ${monthString} only has 30 days.`, ephemeral: true });
                 return;
             }
 
-            const time = interaction.options.get("time").value.match();
-            interaction.reply({ content: "get timestamp", ephemeral: true, });
+            const time = interaction.options.get("time").value.toUpperCase();
+            const _24HourMatches = time.match(/^(\d{2})\:(\d{2})$/);
+            const _12HourMatches = time.match(/^(\d{2})\:(\d{2})((P|A)?M)$/);
+
+            //check that the user gave a valid time
+            if(_24HourMatches === null && _12HourMatches === null)
+            {
+                interaction.reply({ content: `"${time}" is an invalid time. Use the 24H (00:00) or 12H (12:00AM) formats`, ephemeral: true });
+                return;
+            }
+            let hours;
+            let minutes;
+            if(_24HourMatches !== null)
+            {
+                //check the hour is valid
+                if(_24HourMatches[1] < 0 || _24HourMatches[1] > 23)
+                {
+                    interaction.reply({ content: `"${_24HourMatches[1]}" is an invalid hour. Only use numbers between 0 and 23 inclusively`, ephemeral: true });
+                    return;
+                }
+
+                //check the minutes are valid
+                if(_24HourMatches[2] < 0 || _24HourMatches[2] > 59)
+                {
+                    interaction.reply({ content: `"${_24HourMatches[2]}" is an invalid minute. Only use numbers between 0 and 59 inclusively`, ephemeral: true });
+                    return;
+                }
+
+                hours = _24HourMatches[1];
+                minutes = _24HourMatches[2];
+            }
+
+            else
+            {
+                //check the hour is valid
+                if(_12HourMatches[1] < 1 || _12HourMatches[1] > 12)
+                {
+                    interaction.reply({ content: `"${_12HourMatches[1]}" is an invalid hour. Only use numbers between 1 and 12 inclusively`, ephemeral: true });
+                    return;
+                }
+
+                //check the minutes are valid
+                if(_12HourMatches[2] < 0 || _12HourMatches[2] > 59)
+                {
+                    interaction.reply({ content: `"${_12HourMatches[2]}" is an invalid minute. Only use numbers between 0 and 59 inclusively`, ephemeral: true });
+                    return;
+                }
+
+                // convert 12H format into 24H format under the hood
+                // if 12 hours, hard code
+                if(_12HourMatches[1] == 12)
+                {
+                    if(_12HourMatches[3] == "AM")
+                    {
+                        hours = 0;
+                    }
+
+                    else
+                    {
+                        hours = 12;
+                    }
+                }
+
+                // otherwise add 12 hours if PM to current hour
+                else
+                {
+                    hours = parseInt(_12HourMatches[1]);
+                    if(_12HourMatches[3] == "PM")
+                    {
+                        hours += 12;
+                    }
+                }
+
+                minutes = _12HourMatches[2];
+            }
+
+           let dateObj = new Date(date[3], date[1] - 1, date[2], hours, minutes)
+
+           let utcTimestamp = Math.floor(new Date(dateObj).getTime() / 1000);
+           let arr = [{name: "Default", t:""}, {name: "Short Time", t:":t"} , {name: "Long Time", t:":T"} , {name: "Short Date", t:":d"}, {name: "Long Date", t:":D"}, {name: "Short Date/Time", t:":f"}, {name: "Long Date/Time", t:":F"}, {name: "Relative Time", t:":R"}]
+
+           let string = arr.map(obj => `${obj.name} <t:${utcTimestamp}${obj.t}> \`<t:${utcTimestamp}${obj.t}>\``).join("\n")
+           await interaction.reply({ content: string, ephemeral: true, });
         break;
 
     }
