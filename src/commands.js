@@ -80,7 +80,7 @@ const handleCommand = async (interaction) => {
                 interaction.reply({ content: `"${date[2]}" is an invalid day. Only use numbers between 1 and 31 inclusively`, ephemeral: true, });
                 return;
             }
-
+            const isLeapYear = date[3] % 4 === 0 && date[3] % 100 !== 0;
             //if February and not a leap, thrown an error if the day is greater than 28
             if(date[1] == 2 && !isLeapYear && date[2] > 28)
             {
