@@ -1,4 +1,6 @@
-const { REST, Routes, ApplicationCommandOptionType, EmbedBuilder } = require("discord.js");
+const { REST, Routes, ApplicationCommandOptionType } = require("discord.js");
+const getTimestampCommandName = "get-timestamp";
+
 const registerCommands = (serverId) => {
     const commands = [
         {
@@ -6,11 +8,7 @@ const registerCommands = (serverId) => {
             description: "See what the purpose of this bot is",
         },
         {
-            name: "ping",
-            description: "pong"
-        },
-        {
-            name: "get-timestamp",
+            name: getTimestampCommandName,
             description: "Get the timestamp(s) of a specific date and time",
             options: [
                 {
@@ -29,9 +27,7 @@ const registerCommands = (serverId) => {
         }
     ]
 
-
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
-
 (async () => {
     try {
       console.log(`Registering slash commands in server id ${serverId}...`);
@@ -43,13 +39,12 @@ const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
       console.log(`There was an error in server id ${serverId}: ${error}`);
     }
   })();
-
 }
 
 const handleCommand = async (interaction) => {
     switch (interaction.commandName) {
         case "help":
-            interaction.reply({ content: "help command", ephemeral: true, });
+            interaction.reply({ content: `This bot simplifies scheduling across time zones by converting a provided date and time into various discord timestamps using the **/${getTimestampCommandName}** command. Repository can be found [here](<https://github.com/BlckHawker/Timestamp-Discord-Bot/tree/master>)`, ephemeral: true, });
         break;
         case "get-timestamp":
             //use regex to make sure the date and time is valid
