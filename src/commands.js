@@ -1,4 +1,3 @@
-//if time not given, use current time
 const {
   REST,
   Routes,
@@ -18,13 +17,6 @@ const registerCommands = (serverId) => {
       description: "Get the timestamp(s) of a specific date and time",
       options: [
         {
-          name: "time",
-          description:
-            "The time of the timestamp. Needs to be in 24H or 12 format. Ex 00:00 or 12:00AM",
-          type: ApplicationCommandOptionType.String,
-          required: true,
-        },
-        {
           name: "timezone",
           description: "The timezone the user is in",
           type: ApplicationCommandOptionType.String,
@@ -34,6 +26,13 @@ const registerCommands = (serverId) => {
           name: "date",
           description:
             "The date of the timestamp. Needs to be in the following format (MM/DD/YYYY)",
+          type: ApplicationCommandOptionType.String,
+          required: false,
+        },
+        {
+          name: "time",
+          description:
+            "The time of the timestamp. Needs to be in 24H or 12 format. Ex 00:00 or 12:00AM",
           type: ApplicationCommandOptionType.String,
           required: false,
         },
@@ -175,140 +174,149 @@ const handleCommand = async (interaction) => {
           localDate.getUTCDate(),
           localDate.getUTCFullYear(),
         ];
+      } else {
+        if (date === null) {
+          interaction.reply({
+            content: `Cannot convert "${dateValue}" to a date. Needs to be in a format (MM/DD/YYYY)`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        //check that the month to see if they're valid
+        if (date[1] < 1 || date[1] > 12) {
+          interaction.reply({
+            content: `"${date[1]}" is an invalid month. Only use numbers between 1 and 12 inclusively`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        const monthString = months[date[1] - 1];
+
+        // check the date is valid
+        if (date[2] < 1 || date[2] > 31) {
+          interaction.reply({
+            content: `"${date[2]}" is an invalid day. Only use numbers between 1 and 31 inclusively`,
+            ephemeral: true,
+          });
+          return;
+        }
+        const isLeapYear = date[3] % 4 === 0 && date[3] % 100 !== 0;
+        //if February and not a leap, thrown an error if the day is greater than 28
+        if (date[1] == 2 && !isLeapYear && date[2] > 28) {
+          interaction.reply({
+            content: `"${date[2]}" is an invalid day as February only has 28 days for the year ${date[3]}.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        //if February and a leap, thrown an error if the day is greater than 29
+        if (date[1] == 2 && isLeapYear && date[2] > 29) {
+          interaction.reply({
+            content: `"${date[2]}" is an invalid day as February only has 29 days for the year ${date[3]}.`,
+            ephemeral: true,
+          });
+          return;
+        }
+
+        //If the month only has 30 days, make sure the day isn't 31
+        if (thirtyMonths.includes(monthString) && date[2] > 30) {
+          interaction.reply({
+            content: `"${date[2]}" is an invalid day as ${monthString} only has 30 days.`,
+            ephemeral: true,
+          });
+          return;
+        }
       }
 
-      if (date === null) {
-        interaction.reply({
-          content: `Cannot convert "${dateValue}" to a date. Needs to be in a format (MM/DD/YYYY)`,
-          ephemeral: true,
-        });
-        return;
-      }
+      const time = interaction.options.get("time")?.value?.toUpperCase();
+      const emptyTime = time === undefined;
+      const _24HourMatches = time?.match(/^(\d{2})\:(\d{2})$/);
+      const _12HourMatches = time?.match(/^(\d{2})\:(\d{2})((P|A)?M)$/);
 
-      //check that the month to see if they're valid
-      if (date[1] < 1 || date[1] > 12) {
-        interaction.reply({
-          content: `"${date[1]}" is an invalid month. Only use numbers between 1 and 12 inclusively`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      const monthString = months[date[1] - 1];
-
-      // check the date is valid
-      if (date[2] < 1 || date[2] > 31) {
-        interaction.reply({
-          content: `"${date[2]}" is an invalid day. Only use numbers between 1 and 31 inclusively`,
-          ephemeral: true,
-        });
-        return;
-      }
-      const isLeapYear = date[3] % 4 === 0 && date[3] % 100 !== 0;
-      //if February and not a leap, thrown an error if the day is greater than 28
-      if (date[1] == 2 && !isLeapYear && date[2] > 28) {
-        interaction.reply({
-          content: `"${date[2]}" is an invalid day as February only has 28 days for the year ${date[3]}.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      //if February and a leap, thrown an error if the day is greater than 29
-      if (date[1] == 2 && isLeapYear && date[2] > 29) {
-        interaction.reply({
-          content: `"${date[2]}" is an invalid day as February only has 29 days for the year ${date[3]}.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      //If the month only has 30 days, make sure the day isn't 31
-      if (thirtyMonths.includes(monthString) && date[2] > 30) {
-        interaction.reply({
-          content: `"${date[2]}" is an invalid day as ${monthString} only has 30 days.`,
-          ephemeral: true,
-        });
-        return;
-      }
-
-      const time = interaction.options.get("time").value.toUpperCase();
-      const _24HourMatches = time.match(/^(\d{2})\:(\d{2})$/);
-      const _12HourMatches = time.match(/^(\d{2})\:(\d{2})((P|A)?M)$/);
-
-      //check that the user gave a valid time
-      if (_24HourMatches === null && _12HourMatches === null) {
-        interaction.reply({
-          content: `"${time}" is an invalid time. Use the 24H (00:00) or 12H (12:00AM) formats`,
-          ephemeral: true,
-        });
-        return;
-      }
       let hours;
       let minutes;
-      if (_24HourMatches !== null) {
-        //check the hour is valid
-        if (_24HourMatches[1] < 0 || _24HourMatches[1] > 23) {
-          interaction.reply({
-            content: `"${_24HourMatches[1]}" is an invalid hour. Only use numbers between 0 and 23 inclusively`,
-            ephemeral: true,
-          });
-          return;
-        }
+      if (emptyTime) {
+        const localDate = new Date();
+        changeDateOffset(localDate, minuteOffset, adding);
 
-        //check the minutes are valid
-        if (_24HourMatches[2] < 0 || _24HourMatches[2] > 59) {
-          interaction.reply({
-            content: `"${_24HourMatches[2]}" is an invalid minute. Only use numbers between 0 and 59 inclusively`,
-            ephemeral: true,
-          });
-          return;
-        }
-
-        hours = _24HourMatches[1];
-        minutes = _24HourMatches[2];
+        hours = localDate.getUTCHours();
+        minutes = localDate.getUTCMinutes();
       } else {
-        //check the hour is valid
-        if (_12HourMatches[1] < 1 || _12HourMatches[1] > 12) {
+        //check that the user gave a valid time
+        if (_24HourMatches === null && _12HourMatches === null) {
           interaction.reply({
-            content: `"${_12HourMatches[1]}" is an invalid hour. Only use numbers between 1 and 12 inclusively`,
+            content: `"${time}" is an invalid time. Use the 24H (00:00) or 12H (12:00AM) formats`,
             ephemeral: true,
           });
           return;
         }
 
-        //check the minutes are valid
-        if (_12HourMatches[2] < 0 || _12HourMatches[2] > 59) {
-          interaction.reply({
-            content: `"${_12HourMatches[2]}" is an invalid minute. Only use numbers between 0 and 59 inclusively`,
-            ephemeral: true,
-          });
-          return;
-        }
-
-        // convert 12H format into 24H format under the hood
-        // if 12 hours, hard code
-        if (_12HourMatches[1] == 12) {
-          if (_12HourMatches[3] == "AM") {
-            hours = 0;
-          } else {
-            hours = 12;
+        if (_24HourMatches !== null) {
+          //check the hour is valid
+          if (_24HourMatches[1] < 0 || _24HourMatches[1] > 23) {
+            interaction.reply({
+              content: `"${_24HourMatches[1]}" is an invalid hour. Only use numbers between 0 and 23 inclusively`,
+              ephemeral: true,
+            });
+            return;
           }
-        }
 
-        // otherwise add 12 hours if PM to current hour
-        else {
-          hours = parseInt(_12HourMatches[1]);
-          if (_12HourMatches[3] == "PM") {
-            hours += 12;
+          //check the minutes are valid
+          if (_24HourMatches[2] < 0 || _24HourMatches[2] > 59) {
+            interaction.reply({
+              content: `"${_24HourMatches[2]}" is an invalid minute. Only use numbers between 0 and 59 inclusively`,
+              ephemeral: true,
+            });
+            return;
           }
-        }
 
-        minutes = _12HourMatches[2];
+          hours = _24HourMatches[1];
+          minutes = _24HourMatches[2];
+        } else {
+          //check the hour is valid
+          if (_12HourMatches[1] < 1 || _12HourMatches[1] > 12) {
+            interaction.reply({
+              content: `"${_12HourMatches[1]}" is an invalid hour. Only use numbers between 1 and 12 inclusively`,
+              ephemeral: true,
+            });
+            return;
+          }
+
+          //check the minutes are valid
+          if (_12HourMatches[2] < 0 || _12HourMatches[2] > 59) {
+            interaction.reply({
+              content: `"${_12HourMatches[2]}" is an invalid minute. Only use numbers between 0 and 59 inclusively`,
+              ephemeral: true,
+            });
+            return;
+          }
+
+          // convert 12H format into 24H format under the hood
+          // if 12 hours, hard code
+          if (_12HourMatches[1] == 12) {
+            if (_12HourMatches[3] == "AM") {
+              hours = 0;
+            } else {
+              hours = 12;
+            }
+          }
+
+          // otherwise add 12 hours if PM to current hour
+          else {
+            hours = parseInt(_12HourMatches[1]);
+            if (_12HourMatches[3] == "PM") {
+              hours += 12;
+            }
+          }
+
+          minutes = _12HourMatches[2];
+        }
       }
 
       //check what the updated hours should be
-
       const newDate = new Date(
         Date.UTC(date[3], date[1] - 1, date[2], hours, minutes)
       );
