@@ -1,3 +1,4 @@
+//if time not given, use current time
 const {
   REST,
   Routes,
@@ -17,13 +18,6 @@ const registerCommands = (serverId) => {
       description: "Get the timestamp(s) of a specific date and time",
       options: [
         {
-          name: "date",
-          description:
-            "The date of the timestamp. Needs to be in the following format (MM/DD/YYYY)",
-          type: ApplicationCommandOptionType.String,
-          required: true,
-        },
-        {
           name: "time",
           description:
             "The time of the timestamp. Needs to be in 24H or 12 format. Ex 00:00 or 12:00AM",
@@ -35,6 +29,13 @@ const registerCommands = (serverId) => {
           description: "The timezone the user is in",
           type: ApplicationCommandOptionType.String,
           required: true,
+        },
+        {
+          name: "date",
+          description:
+            "The date of the timestamp. Needs to be in the following format (MM/DD/YYYY)",
+          type: ApplicationCommandOptionType.String,
+          required: false,
         },
       ],
     },
@@ -60,7 +61,6 @@ const registerCommands = (serverId) => {
 };
 
 const handleCommand = async (interaction) => {
-  // 
   switch (interaction.commandName) {
     case "help":
       interaction.reply({
@@ -114,7 +114,6 @@ const handleCommand = async (interaction) => {
         { abbreviation: "+14", offset: "+14:00" },
       ];
 
-
       const desiredTimezone = interaction.options
         .get("timezone")
         .value.toUpperCase();
@@ -126,9 +125,10 @@ const handleCommand = async (interaction) => {
       if (!timezoneObj) {
         let timezoneStr =
           "```|Timezone Abbreviation(s)| UTC offset |\n|  -----------------     | ---------- |";
-        for (obj of timezones) 
-        {
-          timezoneStr += `\n|${obj.abbreviation + " ".repeat(24 - obj.abbreviation.length)}|${obj.offset + " ".repeat(12 - obj.offset.length)}|`;
+        for (obj of timezones) {
+          timezoneStr += `\n|${
+            obj.abbreviation + " ".repeat(24 - obj.abbreviation.length)
+          }|${obj.offset + " ".repeat(12 - obj.offset.length)}|`;
         }
         timezoneStr += "```";
         interaction.reply({
@@ -136,7 +136,7 @@ const handleCommand = async (interaction) => {
           ephemeral: true,
         });
         return;
-      } 
+      }
 
       //use regex to make sure the date and time is valid
       const months = [
@@ -154,8 +154,28 @@ const handleCommand = async (interaction) => {
         "December",
       ];
       const thirtyMonths = ["April", "June", "September", "November"];
-      const dateValue = interaction.options.get("date").value;
-      const date = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      const dateValue = interaction.options.get("date")?.value;
+      const emptyDate = dateValue === undefined;
+      let date = dateValue?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+      const offset = timezoneObj.offset;
+      const offsetRegexObj = offset.match(/([-\+])(\d{2}):(\d{2})/);
+      const adding = offsetRegexObj[1] == "+";
+      const hourOffset = parseInt(offsetRegexObj[2]);
+      const minuteOffset = parseInt(offsetRegexObj[3]) + 60 * hourOffset;
+
+      if (emptyDate) {
+        // Use the local date's month, date, and year
+        const localDate = new Date();
+        changeDateOffset(localDate, minuteOffset, adding);
+
+        date = [
+          "",
+          localDate.getUTCMonth() + 1,
+          localDate.getUTCDate(),
+          localDate.getUTCFullYear(),
+        ];
+      }
 
       if (date === null) {
         interaction.reply({
@@ -287,28 +307,14 @@ const handleCommand = async (interaction) => {
         minutes = _12HourMatches[2];
       }
 
-    //check what the updated hours should be
+      //check what the updated hours should be
 
       const newDate = new Date(
         Date.UTC(date[3], date[1] - 1, date[2], hours, minutes)
       );
 
-      
-    const offset = timezoneObj.offset;
-    const offsetRegexObj = offset.match(/([-\+])(\d{2}):(\d{2})/)
-    const adding = offsetRegexObj[1] == '-';
-    const hourOffset = parseInt(offsetRegexObj[2])
-    let minuteOffset = parseInt(offsetRegexObj[3]) + 60 * hourOffset;
-    if(adding)
-    {
-        newDate.setTime(newDate.getTime() + (minuteOffset * 60 * 1000));
-    }
-
-    else
-    {
-        newDate.setTime(newDate.getTime() - (minuteOffset * 60 * 1000));
-    }
-
+      //idk why adding needs to be the opposite bool value, it won't work otherwise
+      changeDateOffset(newDate, minuteOffset, !adding);
 
       let utcTimestamp = Math.floor(newDate.getTime() / 1000);
       let arr = [
@@ -332,5 +338,13 @@ const handleCommand = async (interaction) => {
       break;
   }
 };
+
+function changeDateOffset(date, minuteOffset, adding) {
+  if (adding) {
+    date.setTime(date.getTime() + minuteOffset * 60 * 1000);
+  } else {
+    date.setTime(date.getTime() - minuteOffset * 60 * 1000);
+  }
+}
 
 module.exports = { registerCommands, handleCommand };
