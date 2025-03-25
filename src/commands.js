@@ -5,40 +5,41 @@ const {
   Application,
 } = require("discord.js");
 const getTimestampCommandName = "get-timestamp";
+const commands = [
+  {
+    name: "help",
+    description: "See what the purpose of this bot is",
+  },
+  {
+    name: getTimestampCommandName,
+    description: "Get the timestamp(s) of a specific date and time",
+    options: [
+      {
+        name: "timezone",
+        description: "The timezone the user is in",
+        type: ApplicationCommandOptionType.String,
+        required: true,
+      },
+      {
+        name: "date",
+        description:
+          "The date of the timestamp. Needs to be in the following format (MM/DD/YYYY)",
+        type: ApplicationCommandOptionType.String,
+        required: false,
+      },
+      {
+        name: "time",
+        description:
+          "The time of the timestamp. Needs to be in 24H or 12 format. Ex 00:00 or 12:00AM",
+        type: ApplicationCommandOptionType.String,
+        required: false,
+      },
+    ],
+  },
+];
 
-const registerCommands = (serverId) => {
-  const commands = [
-    {
-      name: "help",
-      description: "See what the purpose of this bot is",
-    },
-    {
-      name: getTimestampCommandName,
-      description: "Get the timestamp(s) of a specific date and time",
-      options: [
-        {
-          name: "timezone",
-          description: "The timezone the user is in",
-          type: ApplicationCommandOptionType.String,
-          required: true,
-        },
-        {
-          name: "date",
-          description:
-            "The date of the timestamp. Needs to be in the following format (MM/DD/YYYY)",
-          type: ApplicationCommandOptionType.String,
-          required: false,
-        },
-        {
-          name: "time",
-          description:
-            "The time of the timestamp. Needs to be in 24H or 12 format. Ex 00:00 or 12:00AM",
-          type: ApplicationCommandOptionType.String,
-          required: false,
-        },
-      ],
-    },
-  ];
+//Registers the commands within a specific server
+const registerCommandsInServer = (serverId) => {
 
   const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
   (async () => {
@@ -50,14 +51,30 @@ const registerCommands = (serverId) => {
         { body: commands }
       );
 
-      console.log(
-        `Slash commands were registered successfully in server id ${serverId}`
-      );
+      console.log(`Slash commands were registered successfully in server id ${serverId}`);
     } catch (error) {
       console.log(`There was an error in server id ${serverId}: ${error}`);
     }
   })();
 };
+
+const registerCommandsGlobally = () => {
+  const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+  (async () => {
+    try {
+      console.log('Registering slash commands globally...');
+
+      // Register the commands globally (for all servers and DMs)
+      await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
+
+      console.log('Slash commands registered successfully globally.');
+    } catch (error) {
+      console.log(`Error registering slash commands globally: ${error}`);
+    }
+  })();
+};
+
 
 const handleCommand = async (interaction) => {
   switch (interaction.commandName) {
@@ -355,4 +372,4 @@ function changeDateOffset(date, minuteOffset, adding) {
   }
 }
 
-module.exports = { registerCommands, handleCommand };
+module.exports = { registerCommandsInServer, registerCommandsGlobally, handleCommand };

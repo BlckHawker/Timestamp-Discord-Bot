@@ -44,25 +44,6 @@ client.on('interactionCreate', async (interaction) => {
         await commands.handleCommand(interaction);
 });
 
-// Emitted when a message is created
-client.on('messageCreate', (message) => {
-    // if(message.author.id == process.env.CLIENT_ID)
-    //     return;
-
-    // let content;
-    // if(!message.guild)
-    // {
-    //     content = `${message.author.username} sent a message in dms saying "${message.content}"`;
-    //     utils.sendDM(client, content, message.author.id);
-    // }
-
-    // else
-    // {
-    //     content = `${message.author.username} sent a message in <#${message.channelId}> saying "${message.content}"`;
-    //     utils.sendServerMessage(client, content);
-    // }
-});
-
 // When the bot first initializes
 client.on("ready", (c) => {
     console.log(`${c.user.tag} is online`);
